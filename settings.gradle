@@ -1,0 +1,12 @@
+include ':app'
+include ':body_sl_master'
+include ':data_db'
+include ':ppscalelib'
+include ':body_index_data'
+include ':bodyindex'
+//非对外的module
+include ':ppbluetoothkit'
+include ':lefulib:bh1BodyComposition'
+include ':lefulib:bhBodyComposition'
+include ':lefulib:bluetoothkit'
+include ':lefulib:lfgson'
