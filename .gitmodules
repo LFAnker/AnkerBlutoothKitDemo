@@ -1,0 +1,3 @@
+[submodule "ppbluetoothkit"]
+	path = ppbluetoothkit
+	url = https://gitee.com/shenzhen-lfscale/ankerbluetooth-kit-android.git
