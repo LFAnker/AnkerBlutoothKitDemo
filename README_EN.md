@@ -20,7 +20,7 @@ In order to allow customers to quickly implement weighing and corresponding func
 ```
 dependencies {
 //aar introduction
-api(name: 'ppblutoothkit-1.0.2-20240318.011400-1', ext: 'aar')
+api(name: 'ppblutoothkit-1.0.2-20240318.072651-2', ext: 'aar')
 }
 ```
 

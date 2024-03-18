@@ -21,7 +21,7 @@ AnkerBluetoothKit是针对eufy T9148/eufy T9149进行封装的SDK，包含蓝牙
 ``` 
 dependencies { 
 	//aar引入
-	api(name: 'ppblutoothkit-1.0.2-20240318.011400-1', ext: 'aar') 
+	api(name: 'ppblutoothkit-1.0.2-20240318.072651-2', ext: 'aar') 
 }  
 ```
 
