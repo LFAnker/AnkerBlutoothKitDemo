@@ -1,2 +1,0 @@
-configurations.maybeCreate("default")
-artifacts.add("default", file('HTBodyfat_48_SDK.aar'))

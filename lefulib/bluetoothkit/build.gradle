@@ -1,2 +1,0 @@
-configurations.maybeCreate("default")
-artifacts.add("default", file('ppbluetoothkit-1.4.5.7.aar'))

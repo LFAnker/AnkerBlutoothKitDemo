@@ -1,7 +1,6 @@
 [English Docs](README_EN.md) | [Chinese Docs](README.md)
 
-
-# AnkerBluetoothKit iOS SDK
+# AnkerBluetoothKit Android SDK
 
 AnkerBluetoothKit is an SDK packaged for eufy T9148/eufy T9149, including Bluetooth connection logic, data analysis logic, and body fat calculation.
 
@@ -21,7 +20,7 @@ In order to allow customers to quickly implement weighing and corresponding func
 ```
 dependencies {
 //aar introduction
-api(name: 'ppblutoothkit-1.0.0-20240312.130313-5', ext: 'aar')
+api(name: 'ppblutoothkit-1.0.2-20240318.011400-1', ext: 'aar')
 }
 ```
 
@@ -49,14 +48,41 @@ During the use of the Demo, you need to turn on Bluetooth and turn on the positi
      <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
   ...
   </manifest>
-  ```
+```
+
+#### 1.3 SDK initialization
+
+```
+     //SDK log printing control, true will print
+     PPBlutoothKit.setDebug(BuildConfig.DEBUG)
+     /**
+      * SDK initialization
+      */
+     PPBlutoothKit.initSdk(this)
+```
+
+#### 1.4 Integration FAQ
+- If you encounter an error related to "AndroidManifest.xml" after integration, please try adding the following code to the main module to solve the problem:
+```
+android {
+    packagingOptions {
+        exclude 'AndroidManifest.xml'
+    }
+}
+```
+
+- If you encounter a ".so" type file error, please try clearing the cache and changing the SDK integration method to api
+
+- If you encounter other integration problems, please consult: yanfabu-5@lefu.cc or contact our sales consultants
+
+- If you have good suggestions or excellent code, you can submit your request on Gitee, we will thank you very much
 
 
 ## Ⅱ .Instructions for use
 
 #### 1.1 Operating environment
 
-Due to the need for Bluetooth connection, the Demo needs to be run on a real machine and supports iOS9.0 and above systems.
+Due to the need for Bluetooth connection, the Demo needs to be run on a real device, Android phone 6.0 and above or HarmonyOS 2.0 and above
 
 ### 1.2 Conventions related to measuring body data
 
@@ -81,25 +107,24 @@ Due to the need for Bluetooth connection, the Demo needs to be run on a real mac
 - Height, age, gender and corresponding impedance are required, and the corresponding calculation library is called to obtain them.
 - The body fat data items involved in 8-electrode require an 8-electrode scale to be used.
 
-## Ⅲ. Calculate body fat - calculate - CalcuteInfoViewController
+## Ⅲ. Calculate body fat - Caclulate - Calculate4ACActivitiy
 
 ### 1.1 Description of parameters required for body fat calculation
 
 Based on the weight and impedance parsed by the Bluetooth protocol, plus the height, age, and gender of the user data, multiple body fat parameter information such as body fat rate is calculated.
 
-#### 1.1.1 AKBluetoothScaleBaseModel
+#### 1.1.1 PPBodyBaseModel
 
 | Parameters | Comments | Description |
 | :-------- | :----- | :----: |
 | weight | weight | actual weight * rounded to 100 |
 |impedance|4-electrode algorithm impedance (encryption) |4-electrode algorithm field|
-| isHeartRating| Whether heart rate is being measured |Heart rate measurement status|
+| userModel|User basic information object |PPUserModel|
 | unit| The current unit of the scale |Real-time unit|
 | heartRate| Heart rate |The scale supports heart rate validation|
-| dataType| Data class|AKScaleDataTypeStable = 0, // Stable weight data, AKScaleDataTypeDynamic = 1, // Dynamic weight data, AKScaleDataTypeOverweight = 2, // Overweight weight data, AKScaleDataTypeFat = 3, // with body fat percentage Lock weight, AKScaleDataTypePetAndBaby = 4, // Stable weight data in pet mode/baby mode |
 
 
-#### 1.1.2 Basic user information description AKBluetoothDeviceSettingModel
+#### 1.1.2 Basic user information description PPUserModel
 
 | Parameters | Comments | Description |
 | :-------- | :----- | :----: |
@@ -108,271 +133,301 @@ Based on the weight and impedance parsed by the Bluetooth protocol, plus the hei
 | gender| Gender |All body fat scales|
 
 
-### 1.3 Four-electrode AC body fat calculation - 4AC - CalcuelateResultViewController
+### 1.2 Four-electrode AC body fat calculation - 4AC - Calculate4ACActivitiy
 
-**Four-electrode AC body fat calculation example:**
+** Four-electrode AC body fat calculation example: **
 
 ```
-// Calculation result class: AKBodyFatModel
+      // Calculation result class: PPBodyFatModel
+      val sex = if (etSex.text?.toString()?.toInt() == 0) {
+             PPUserGender.PPUserGenderFemale
+         } else {
+             PPUserGender.PPUserGenderMale
+         }
+         val height = etHeight.text?.toString()?.toInt() ?: 180
+         val age = etAge.text?.toString()?.toInt() ?: 28
+         val weight = etWeight.text?.toString()?.toDouble() ?: 70.00
+         val impedance = etImpedance.text?.toString()?.toLong() ?: 4195332L
 
-var fatModel:AKBodyFatModel!
-        
-         fatModel = AKBodyFatModel(userModel: userModel,
-                                    deviceCalcuteType: PPDeviceCalcuteType.alternateNormal,
-                                    deviceMac: mac,
-                                    weight: weight,
-                                    heartRate: heartRate,
-                                    andImpedance: impedance)
-                                       
-// fatModel is the calculated result
-if (fatModel.errorType == .ERROR_TYPE_NONE) {
+         val userModel = PPUserModel.Builder()
+             .setSex(sex) //gender
+             .setHeight(height)//height 100-220
+             .setAge(age)//age 10-99
+             .build()
 
-print("\(fatModel.description)")
-} else {
+         val bodyBaseModel = PPBodyBaseModel()
+         bodyBaseModel.weight = UnitUtil.getWeight(weight)
+         bodyBaseModel.impedance = impedance
+         bodyBaseModel.userModel = userModel
 
-print("errorType:\(fatModel.errorType)")
+         val ppBodyFatModel = PPBodyFatModel(bodyBaseModel)
+
+         DataUtil.util().bodyDataModel = ppBodyFatModel
+         Log.d("liyp_", ppBodyFatModel.toString())
+```
+## Ⅳ. Device scanning - Device-ScanDeviceListActivity
+
+### 1.1 Scan for supported devices around-PPSearchManager
+
+
+**Notice:**
+
+- If you need to start scanning between multiple pages, it is recommended to put the scanning logic into a tool class and wrap it with a singleton
+- If there are consecutive pages that need to be scanned, please make sure that the Bluetooth on the previous page has stopped scanning before scanning on the second page. It is recommended that the second page be delayed by 1000ms before starting.
+- If you need to scan Bluetooth all the time, you need to restart the scan when ppBleWorkState returns PPBleWorkState.PPBleWorkSearchTimeOut in the monitorBluetoothWorkState method to ensure circular scanning.
+
+
+'PPSearchManager' is the core class for device scanning and connection. It mainly implements the following functions:
+
+```
+     /**
+      * Scan the list of surrounding Bluetooth scales
+      * @parm Bluetooth scan return monitoring-PPSearchDeviceInfoInterface
+      * @parm Bluetooth related status monitoring-PPBleStateInterface
+      */
+     public void startSearchDeviceList(int scanTimes, PPSearchDeviceInfoInterface searchDeviceInfoInterface, PPBleStateInterface bleStateInterface) {
+     }
+
+     /**
+      * Stop search
+      */
+     public void stopSearch() {
+     }
+
+
+     /**
+      * Whether scanning is in progress
+      * @return
+      */
+     public boolean isSearching() {}
+
+```
+
+#### 1.1.1 Bluetooth state PPBleWorkState
+
+| Classification enumeration | Description | Remarks |
+|------|--------|--------|
+| PPBleWorkStateSearching | Scanning |
+| PPBleWorkSearchTimeOut| Scan timeout | Restart scanning if necessary |
+| PPBleWorkSearchFail | Scan failed | Restart scan if necessary |
+| PPBleStateSearchCanceled| Stop scanning | Actively call to stop scanning |
+| PPBleWorkStateConnecting| Device connecting | |
+| PPBleWorkStateConnected | The device is connected | After being connected, it is recommended to deliver data in PPBleWorkStateWritable |
+| PPBleWorkStateConnectFailed| Connection failed | |
+| PPBleWorkStateDisconnected| The device has been disconnected | |
+| PPBleWorkStateWritable | Writable | If you need to send information to the device after connecting, you can send it here in sequence |
+
+
+
+#### 1.1.4 Stop scanning
+
+```
+ppScale.stopSearch();
+```
+
+#### 1.1.5 Restart scanning
+
+It is recommended to delay restarting the scan for 1-2 seconds to prevent frequent scanning of the Android system.
+
+```
+public void delayScan() {
+new Handler(getMainLooper()).postDelayed(new Runnable() {
+@Override
+public void run() {
+    if (isOnResume) {
+        startScanDeviceList();
+            }
+        }
+    }, 1000);
 }
 ```
 
-## Ⅳ. Device scanning - Device-SearchDeviceViewController
+# Ⅴ. Function description
 
-### 1.2 Scan surrounding supported devices-SearchDeviceViewController
-
-`AKBluetoothConnectManager` is the core class for device scanning and connection. It mainly implements the following functions:
-
-- Bluetooth status monitoring
-- Scan for supported Bluetooth devices in the surrounding area
-- Connect to designated Bluetooth devices
-- Disconnect the specified device
-- Stop scanning
+### 2.1 Function Description -PPBlutoothPeripheralIceController
 
 ```
-@interface AKBluetoothConnectManager : NSObject
-
-// Bluetooth status proxy
-@property (nonatomic, weak) id<AKBluetoothUpdateStateDelegate> updateStateDelegate;
-
-//Search for device agents
-@property (nonatomic, weak) id<AKBluetoothSurroundDeviceDelegate> surroundDeviceDelegate;
-
-//Connect device agent
-@property (nonatomic, weak) id<AKBluetoothConnectDelegate> connectDelegate;
-
-@property (nonatomic, weak) id<AKBluetoothScaleDataDelegate> scaleDataDelegate;
-
-// Search for peripheral supported devices
-- (void)searchSurroundDevice;
-
-//Connect to the specified device
-- (void)connectPeripheral:(CBPeripheral *)peripheral withDevice:(AKBluetoothAdvDeviceModel *)device;
-
-// Stop searching for Bluetooth devices
-- (void)stopSearch;
-
-// Disconnect the specified Bluetooth device
-- (void)disconnect:(CBPeripheral *)peripheral;
-
-@end
-```
-
-#### 1.2.1 Create AKBluetoothConnectManager instance
-
-```
-//Create an AKBluetoothConnectManager instance and set the proxy
-let scaleManager:AKBluetoothConnectManager = AKBluetoothConnectManager()
-self.scaleManager.updateStateDelegate = self;
-self.scaleManager.surroundDeviceDelegate = self;
-```
-
-[English Docs](README_EN.md) | [Chinese Docs](README.md)
-
-
-# AnkerBluetoothKit iOS SDK
-
-AnkerBluetoothKit is an SDK packaged for eufy T9148/eufy T9149, including Bluetooth connection logic, data analysis logic, and body fat calculation.
-
-### Sample program
-
-In order to allow customers to quickly implement weighing and corresponding functions, a sample program is provided, which includes a body fat calculation module and a device function module.
-
-- The devices currently supported by the device function module include: eufy T9148/eufy T9149 series Bluetooth WiFi body fat scale.
-- The body fat calculation module supports 4-electrode AC algorithm.
-
-
-
-## Ⅰ. Integration method
-
-#### 1.1 aar file import
-- Add it to build.gradle under the module where sdk needs to be introduced (for the latest version, please check the libs under the module of ppscalelib)
-```
-dependencies {
-//aar introduction
-api(name: 'ppblutoothkit-1.0.0-20240312.130313-5', ext: 'aar')
-}
-```
-
-#### 1.2 Add Bluetooth permissions in the `AndroidManifest.xml` file
-
-During the use of the Demo, you need to turn on Bluetooth and turn on the positioning switch. Make sure to enable and authorize the necessary permissions: For precise positioning permissions and nearby device permissions, you can view the official Bluetooth permissions document. The document address is: [Instructions on Bluetooth permissions on the Google Developer Website] (https://developer.android.com/guide/topics/connectivity/bluetooth/permissions).
-
-- Accurate positioning permissions
-- Nearby device permissions
-- Position switch
-- Bluetooth switch
-
-```
-<manifest>
-     <!-- Request legacy Bluetooth permissions on older devices. -->
-     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
-     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-     <!-- Needed only if your app looks for Bluetooth devices. If your app doesn't use Bluetooth scan results to derive physical location information, you can strongly assert that your app doesn't derive physical location. -->
-     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-     <!-- Needed only if your app makes the device discoverable to Bluetooth devices. -->
-     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
-     <!-- Needed only if your app communicates with already-paired Bluetooth devices. -->
-     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-     <!-- Needed only if your app uses Bluetooth scan results to derive physical location. -->
-     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-  ...
-  </manifest>
-  ```
-
-
-## Ⅱ .Instructions for use
-
-#### 1.1 Operating environment
-
-Due to the need for Bluetooth connection, the Demo needs to be run on a real machine and supports iOS9.0 and above systems.
-
-### 1.2 Conventions related to measuring body data
-
-#### 1.2.1 Precautions for weighing and fat measurement
-
-- The scale supports fat measurement
-- Weigh on your bare feet and touch the corresponding electrode pads
-- The weighing interface returns weight (kg) and impedance information
-- Human body parameters height and age are entered correctly
-
-#### 1.2.2 Body fat calculation
-
-##### Basic parameter agreement
-
-| Category | Input Range | Unit |
-|:----|:--------|:--:|
-| Height | 100-220 | cm |
-| Age | 10-99 | Years |
-| Gender | 0/1 | Female/Male |
-| Weight | 10-200 | kg |
-
-- Height, age, gender and corresponding impedance are required, and the corresponding calculation library is called to obtain them.
-- The body fat data items involved in 8-electrode require an 8-electrode scale to be used.
-
-## Ⅲ. Calculate body fat - calculate - CalcuteInfoViewController
-
-### 1.1 Description of parameters required for body fat calculation
-
-Based on the weight and impedance parsed by the Bluetooth protocol, plus the height, age, and gender of the user data, multiple body fat parameter information such as body fat rate is calculated.
-
-#### 1.1.1 AKBluetoothScaleBaseModel
-
-| Parameters | Comments | Description |
-| :-------- | :----- | :----: |
-| weight | weight | actual weight * rounded to 100 |
-|impedance|4-electrode algorithm impedance (encryption) |4-electrode algorithm field|
-| isHeartRating| Whether heart rate is being measured |Heart rate measurement status|
-| unit| The current unit of the scale |Real-time unit|
-| heartRate| Heart rate |The scale supports heart rate validation|
-| dataType| Data class|AKScaleDataTypeStable = 0, // Stable weight data, AKScaleDataTypeDynamic = 1, // Dynamic weight data, AKScaleDataTypeOverweight = 2, // Overweight weight data, AKScaleDataTypeFat = 3, // with body fat percentage Lock weight, AKScaleDataTypePetAndBaby = 4, // Stable weight data in pet mode/baby mode |
-
-
-#### 1.1.2 Basic user information description AKBluetoothDeviceSettingModel
-
-| Parameters | Comments | Description |
-| :-------- | :----- | :----: |
-| height| height|all body fat scales|
-| age| age |all body fat scales|
-| gender| Gender |All body fat scales|
-
-
-### 1.3 Four-electrode AC body fat calculation - 4AC - CalcuelateResultViewController
-
-**Four-electrode AC body fat calculation example:**
-
-```
-// Calculation result class: AKBodyFatModel
-
-var fatModel:AKBodyFatModel!
-        
-         fatModel = AKBodyFatModel(userModel: userModel,
-                                    deviceCalcuteType: PPDeviceCalcuteType.alternateNormal,
-                                    deviceMac: mac,
-                                    weight: weight,
-                                    heartRate: heartRate,
-                                    andImpedance: impedance)
-                                       
-// fatModel is the calculated result
-if (fatModel.errorType == .ERROR_TYPE_NONE) {
-
-print("\(fatModel.description)")
-} else {
-
-print("errorType:\(fatModel.errorType)")
-}
-```
-
-## Ⅳ. Device scanning - Device-SearchDeviceViewController
-
-### 1.2 Scan surrounding supported devices-SearchDeviceViewController
-
-`AKBluetoothConnectManager` is the core class for device scanning and connection. It mainly implements the following functions:
-
-- Bluetooth status monitoring
-- Scan for supported Bluetooth devices in the surrounding area
-- Connect to designated Bluetooth devices
-- Disconnect the specified device
-- Stop scanning
-
-```
-@interface AKBluetoothConnectManager : NSObject
-
-// Bluetooth status proxy
-@property (nonatomic, weak) id<AKBluetoothUpdateStateDelegate> updateStateDelegate;
-
-//Search for device agents
-@property (nonatomic, weak) id<AKBluetoothSurroundDeviceDelegate> surroundDeviceDelegate;
-
-//Connect device agent
-@property (nonatomic, weak) id<AKBluetoothConnectDelegate> connectDelegate;
-
-@property (nonatomic, weak) id<AKBluetoothScaleDataDelegate> scaleDataDelegate;
-
-// Search for peripheral supported devices
-- (void)searchSurroundDevice;
-
-//Connect to the specified device
-- (void)connectPeripheral:(CBPeripheral *)peripheral withDevice:(AKBluetoothAdvDeviceModel *)device;
-
-// Stop searching for Bluetooth devices
-- (void)stopSearch;
-
-// Disconnect the specified Bluetooth device
-- (void)disconnect:(CBPeripheral *)peripheral;
-
-@end
-```
-
-#### 1.2.1 Create AKBluetoothConnectManager instance
-
-```
-//Create an AKBluetoothConnectManager instance and set the proxy
-let scaleManager:AKBluetoothConnectManager = AKBluetoothConnectManager()
-self.scaleManager.updateStateDelegate = self;
-self.scaleManager.surroundDeviceDelegate = self;
+     //Connect the device
+     override fun startConnect(deviceModel: PPDeviceModel, bleStateInterface: PPBleStateInterface?) {}
+
+     /**
+      * Register data change monitoring
+      */
+     fun registDataChangeListener(dataChangeListener: PPDataChangeListener) {}
+
+     /**
+      * Read device information
+      */
+     fun readDeviceInfo(deviceInfoInterface: PPDeviceInfoInterface?) {}
+
+     /**
+      * Ordinary body fat scale synchronization time
+      */
+     fun syncTime(sendResultCallBack: PPBleSendResultCallBack?) {}
+
+     /**
+      * Switch units
+      */
+     fun syncUnit(userUnit: PPUnitType?, sendResultCallBack: PPBleSendResultCallBack?) {}
+
+     /**
+      * Get historical data
+      */
+     fun getHistory(historyDataInterface: PPHistoryDataInterface) {}
+
+
+     /**
+      * Clear historical data
+      */
+     fun deleteHistoryData(bleSendListener: PPBleSendResultCallBack?) {}
+
+     /**
+      * Measurement mode
+      *
+      * @param state 1 turns on pregnant mode 0 turns off pregnant mode
+      */
+     fun controlImpendance(state: Int, modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+    
+     /**
+      * @param state heart rate 0 on 1 off
+      */
+     fun controlHeartRate(state: Int, modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+    
+     /**
+      * Switch baby mode
+      *
+      * @param mode 00 enables baby holding mode 01 exits baby holding mode
+      */
+     fun exitBaby(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+
+     /**
+      * Switch baby mode
+      *
+      * @param mode 00 enables baby holding mode 01 exits baby holding mode
+      */
+     fun startBaby(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+
+     /**
+      * Switch baby mode
+      *
+      * @param mode 00 enables baby holding mode 01 exits baby holding mode
+      */
+     fun startPet(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+
+     /**
+      * Switch baby mode
+      *
+      * @param mode 00 enables baby holding mode 01 exits baby holding mode
+      */
+     fun exitPet(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+
+     /**
+      * Start distribution network
+      */
+     fun configWifiStart(configWifiInfoInterface: PPConfigWifiInfoInterface) {}
+
+     /**
+      * Issue distribution network code, uid, and server domain name
+      *
+      * @param code
+      * @param uid
+      * @param url
+      * @param configWifiInfoInterface
+      */
+     fun configNewCodeUidUrl(code: String, uid: String, url: String, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      *Issue domain name certificate
+      */
+     fun configDomainCertificate(domainCertificate: String, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      * Delete WiFi parameters
+      *
+      * @param configWifiInfoInterface
+      */
+     fun configDeleteWifi(configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      * Query WiFi parameters
+      */
+     fun getWifiInfo(configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      * Update WiFi parameters (distribution network)-router name
+      *
+      * @param ssid
+      * @param configWifiInfoInterface
+      */
+     fun configUpdateWifiSSID(ssid: String?, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      * Update WiFi parameters (distribution network)-router password
+      *
+      * @param pwd
+      * @param configWifiInfoInterface
+      */
+     fun configUpdateWifiPassword(pwd: String?, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      * Update WiFi parameters (network configuration) - end
+      *
+      * @param configWifiInfoInterface
+      */
+     fun startConnectRouter(configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
+
+     /**
+      * Get wifi list
+      */
+     fun getWifiList(configWifiInfoInterface: PPConfigWifiInfoInterface) {}
+
+     /**
+      * Exit the distribution network
+      */
+     fun exitConfigWifi() {}
+    
+     //Get device binding status
+     fun getDeviceBindState() {}
+
+     //Get device Token status
+     fun getDeviceTokenState() {}
+
+     //Prepare to update Token
+     fun prepareUpdateToken() {}
+    
+     //Device mode query
+     fun getCurrDeviceModel() {}
+    
+     //Get the current wifi Rssi
+     fun getCurrWifiRSSI() {}
+
+     /**
+      * Restore Factory
+      */
+     fun resetDevice(ppDeviceSetInfoInterface: PPDeviceSetInfoInterface?) {}
+
+     /**
+      * Read device power
+      */
+     fun readDeviceBattery(ppDeviceInfoInterface: PPDeviceInfoInterface?) { }
+
+     //Configuring network heartbeat packet
+     fun startKeepAlive() {
+         Logger.d("$tag startKeepAlive")
+     }
+
+     /**
+      * Stop heartbeat
+      */
+     fun stopKeepAlive() {
+         Logger.d("$tag stopKeepAlive")
+      
+     }
 ```
 
 ## Ⅵ. Entity class objects and specific parameter descriptions
 
-### 1.1 AKBodyFatModel body fat calculation object parameter description
+### 1.1 PPBodyFatModel body fat calculation object parameter description
 
 24 items of data corresponding to four electrodes
 
@@ -433,13 +488,20 @@ Note: To get the object when using it, please call the corresponding attribute t
 |PPBodyTypeFatMuscle|Fat muscular type|7|
 |PPBodyTypeMuscleFat|Muscle type fat|8|
 
-### 1.3 Device object-AKBluetoothAdvDeviceModel
+### 1.3 Device object-PPDeviceModel
 
 |Attribute name |Type |Description |Remarks|
 | ------ | ---- | ---- | ---- |
 | deviceMac | String | device mac|device unique identifier|
 | deviceName | String | Device Bluetooth name | Device name identification |
+| devicePower | Int | Power |-1 flag is not supported >0 is a valid value |
 | rssi | Int | Bluetooth signal strength |
+| firmwareVersion | String? | Firmware version number | To actively call readDeviceInfo after connection |
+| hardwareVersion | String? | Hardware version number | To actively call readDeviceInfo after connection |
+| manufacturerName | String? | Manufacturer | To actively call readDeviceInfo after connection |
+| softwareVersion | String? | Software version number | To actively call readDeviceInfo after connection |
+| serialNumber | String? | Serial number | Actively call readDeviceInfo after connection |
+| modelNumber | String? | Time zone number | Actively call readDeviceInfo after connection |
 
 
 ### 1.4 Device unit-PPDeviceUnit

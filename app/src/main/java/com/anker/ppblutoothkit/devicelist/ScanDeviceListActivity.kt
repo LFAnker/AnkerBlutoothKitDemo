@@ -36,43 +36,30 @@ class ScanDeviceListActivity : Activity() {
         val listView = findViewById<View>(R.id.list_View) as ListView
         listView.adapter = adapter
 
-//        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//
-//            @Override
-//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                onStartDeviceSetPager(position);
-//            }
-//        });
         adapter!!.setOnClickInItemLisenter { position, view ->
             onStartDeviceSetPager(position)
         }
     }
 
     private fun reStartScan() {
-        if (ppScale != null) {
-            ppScale!!.stopSearch()
-        }
-        tv_starts!!.text = getString(R.string.start_scan)
+        ppScale?.stopSearch()
+        tv_starts?.text = getString(R.string.start_scan)
         startScanDeviceList()
     }
 
     private fun onStartDeviceSetPager(position: Int) {
         val deviceModel = adapter!!.getItem(position) as PPDeviceModel?
         if (deviceModel != null) {
-            if (deviceModel.getDevicePeripheralType() == PPScaleDefine.PPDevicePeripheralType.PeripheralIce) {
-                val intent = Intent(this@ScanDeviceListActivity, PeripheralIceActivity::class.java)
-                PeripheralIceActivity.deviceModel = deviceModel
-                startActivity(intent)
-            }
+            val intent = Intent(this@ScanDeviceListActivity, PeripheralIceActivity::class.java)
+            PeripheralIceActivity.deviceModel = deviceModel
+            startActivity(intent)
         }
     }
 
     override fun onPause() {
         super.onPause()
         isOnResume = false
-        if (ppScale != null) {
-            ppScale!!.stopSearch()
-        }
+        ppScale?.stopSearch()
     }
 
     /**

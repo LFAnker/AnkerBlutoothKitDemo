@@ -335,7 +335,7 @@ class PeripheralIceActivity : AppCompatActivity() {
             //这里要填称重用户的个人信息 Here we need to fill in the personal information of the weighing user
             val userModel = DataUtil.util().userModel
             bodyBaseModel?.userModel = userModel
-            //测量到稳定重量
+            //Stable weight measured
             addPrint("Stable weight measured weight:$weightStr")
             weightMeasureState?.text = getString(R.string.measure_complete)
             MsgDialog.init(supportFragmentManager)

@@ -1,7 +1,7 @@
 [English Docs](README_EN.md)  |  [中文文档](README.md)
 
 
-# AnkerBluetoothKit iOS SDK
+# AnkerBluetoothKit Android SDK
 
 AnkerBluetoothKit是针对eufy T9148/eufy T9149进行封装的SDK，包含蓝牙连接逻辑、数据解析逻辑、体脂计算。
 
@@ -21,7 +21,7 @@ AnkerBluetoothKit是针对eufy T9148/eufy T9149进行封装的SDK，包含蓝牙
 ``` 
 dependencies { 
 	//aar引入
-	api(name: 'ppblutoothkit-1.0.0-20240312.130313-5', ext: 'aar') 
+	api(name: 'ppblutoothkit-1.0.2-20240318.011400-1', ext: 'aar') 
 }  
 ```
 
@@ -51,12 +51,39 @@ dependencies {
  </manifest>    
  ```   
 
+#### 1.3 SDK初始化
+
+```  
+        //SDK日志打印控制，true会打印
+        PPBlutoothKit.setDebug(BuildConfig.DEBUG)
+        /**
+         * SDK 初始化
+         */
+        PPBlutoothKit.initSdk(this)
+ ```   
+
+#### 1.4 集成常见问题
+- 如果遇到集成后提示“AndroidManifest.xml”相关的报错，请尝试着在主module中加入以下代码解决：
+ ```   
+android {
+	 packagingOptions {
+		 exclude 'AndroidManifest.xml' 
+	 } 
+ }
+ ```  
+
+- 如果遇到“.so”类型的文件错误，请尝试清除缓存，并将集成sdk的方式改为api
+
+- 如遇到其他集成的问题请咨询：yanfabu-5@lefu.cc 或联系我们的销售顾问
+
+- 如你有好的建议或优秀的代码你可以在Gitee上提交你的请求，我们会非常感谢你
+
 
 ## Ⅱ .使用说明
 
 #### 1.1 运行环境
 
-由于需要蓝牙连接，Demo需要在真机运行，支持iOS9.0及以上系统
+由于需要蓝牙连接，Demo需要真机运行，Android手机6.0及以上或HarmonyOS2.0及以上
 
 ### 1.2 测量身体数据相关约定
 
@@ -81,25 +108,24 @@ dependencies {
 - 需要身高、年龄、性别和对应的阻抗，调用对应的计算库去获得
 - 8电极所涉及的体脂数据项需要8电极的秤才可使用
 
-## Ⅲ. 计算体脂 - calcute - CalcuteInfoViewController
+## Ⅲ. 计算体脂 - Caclulate - Calculate4ACActivitiy
 
 ### 1.1  体脂计算所需参数说明
 
 根据蓝牙协议解析出的体重、阻抗，加上用户数据的身高、年龄、性别，计算出体脂率等多项体脂参数信息。
 
-#### 1.1.1   AKBluetoothScaleBaseModel
+#### 1.1.1   PPBodyBaseModel
 
 | 参数 | 注释| 说明 |  
 | :--------  | :-----  | :----:  |  
 | weight | 体重 | 实际体重*100取整|  
 | impedance|4电极算法阻抗（加密） |四电极算法字段|     
-| isHeartRating| 是否正在测量心率 |心率测量状态|  
+| userModel|用户基础信息对象 |PPUserModel|  
 | unit| 秤端的当前单位 |实时单位|  
 | heartRate| 心率 |秤端支持心率生效|  
-| dataType| 数据类 |AKScaleDataTypeStable = 0, // 稳定的体重数据，AKScaleDataTypeDynamic = 1, // 动态的体重数据，AKScaleDataTypeOverweight = 2, // 超重的体重数据，AKScaleDataTypeFat = 3, // 带体脂率的锁定重量，AKScaleDataTypePetAndBaby = 4, // 宠物模式/抱婴模式下稳定的体重数据|
 
 
-#### 1.1.2 用户基础信息说明 AKBluetoothDeviceSettingModel
+#### 1.1.2 用户基础信息说明 PPUserModel
 
 | 参数 | 注释| 说明 |  
 | :--------  | :-----  | :----:  |  
@@ -108,341 +134,301 @@ dependencies {
 | gender| 性别 |所有体脂秤|
 
 
-### 1.3  四电极交流体脂计算 - 4AC - CalcuelateResultViewController
+### 1.2  四电极交流体脂计算 - 4AC - Calculate4ACActivitiy
 
 **四电极交流计算体脂示例:**
 
 ```
-// 计算结果类：AKBodyFatModel
-
-var fatModel:AKBodyFatModel!
-        
-        fatModel =  AKBodyFatModel(userModel: userModel,
-                                   deviceCalcuteType: PPDeviceCalcuteType.alternateNormal,
-                                   deviceMac: mac,
-                                   weight: weight,
-                                   heartRate: heartRate,
-                                   andImpedance: impedance)
-                                       
-// fatModel 为计算所得结果
-if (fatModel.errorType == .ERROR_TYPE_NONE) {
-
-	print("\(fatModel.description)")
-} else {
-
-	print("errorType:\(fatModel.errorType)")
-}
-```
-
-## Ⅳ. 设备扫描 - Device-SearchDeviceViewController
-
-### 1.2 扫描周围支持的设备-SearchDeviceViewController
-
-`AKBluetoothConnectManager`是设备扫描和连接的核心类，主要实现以下功能：
-
-- 蓝牙状态监听
-- 扫描周边所支持的蓝牙设备
-- 连接指定的蓝牙设备
-- 断开指定设备的连接
-- 停止扫描
-
-```
-@interface AKBluetoothConnectManager : NSObject
-
-// 蓝牙状态代理
-@property (nonatomic, weak) id<AKBluetoothUpdateStateDelegate> updateStateDelegate;
-
-// 搜索设备代理
-@property (nonatomic, weak) id<AKBluetoothSurroundDeviceDelegate> surroundDeviceDelegate;
-
-// 连接设备代理
-@property (nonatomic, weak) id<AKBluetoothConnectDelegate> connectDelegate;
-
-@property (nonatomic, weak) id<AKBluetoothScaleDataDelegate> scaleDataDelegate;
-
-// 搜索周边所支持的设备
-- (void)searchSurroundDevice;
-
-// 连接指定的设备
-- (void)connectPeripheral:(CBPeripheral *)peripheral withDevice:(AKBluetoothAdvDeviceModel *)device;
-
-// 停止搜索蓝牙设备
-- (void)stopSearch;
-
-// 断开连接指定的蓝牙设备
-- (void)disconnect:(CBPeripheral *)peripheral;
-
-@end
-```
-
-#### 1.2.1 创建AKBluetoothConnectManager实例
-
-```
-// 创建AKBluetoothConnectManager实例，并设置代理
-let scaleManager:AKBluetoothConnectManager = AKBluetoothConnectManager()
-self.scaleManager.updateStateDelegate = self;
-self.scaleManager.surroundDeviceDelegate = self;
-```
-
-#### 1.2.2 实现蓝牙状态和搜索设备代理方法
-
-```
-extension SearchDeviceViewController:AKBluetoothUpdateStateDelegate,AKBluetoothSurroundDeviceDelegate{
-
-    //蓝牙状态
-    func centralManagerDidUpdate(_ state: AKBluetoothState) {
-        
-        if (state == .poweredOn){
-            self.scaleManager.searchSurroundDevice()
+     // 计算结果类：PPBodyFatModel
+     val sex = if (etSex.text?.toString()?.toInt() == 0) {
+            PPUserGender.PPUserGenderFemale
+        } else {
+            PPUserGender.PPUserGenderMale
         }
+        val height = etHeight.text?.toString()?.toInt() ?: 180
+        val age = etAge.text?.toString()?.toInt() ?: 28
+        val weight = etWeight.text?.toString()?.toDouble() ?: 70.00
+        val impedance = etImpedance.text?.toString()?.toLong() ?: 4195332L
+
+        val userModel = PPUserModel.Builder()
+            .setSex(sex) //gender
+            .setHeight(height)//height 100-220
+            .setAge(age)//age 10-99
+            .build()
+
+        val bodyBaseModel = PPBodyBaseModel()
+        bodyBaseModel.weight = UnitUtil.getWeight(weight)
+        bodyBaseModel.impedance = impedance
+        bodyBaseModel.userModel = userModel
+
+        val ppBodyFatModel = PPBodyFatModel(bodyBaseModel)
+
+        DataUtil.util().bodyDataModel = ppBodyFatModel
+        Log.d("liyp_", ppBodyFatModel.toString())
+```
+
+## Ⅳ. 设备扫描 - Device-ScanDeviceListActivity
+
+### 1.1 扫描周围支持的设备-PPSearchManager
+
+
+**注意：**
+
+- 如果你在多个页面之间需要启动扫描，建议把扫描逻辑，放到工具类中，并用单例进行包裹
+- 如果有连续页面需要调用扫描时，请一定要确保上个页面的蓝牙已停止扫描后，再在第二个页面进行扫描，建议是第二个页面延迟1000ms再启动。
+- 如果你需要一直扫描蓝牙，你要在monitorBluetoothWorkState方法中ppBleWorkState返回PPBleWorkState.PPBleWorkSearchTimeOut时重启扫描，以确保循环扫描
+
+
+`PPSearchManager`是设备扫描和连接的核心类，主要实现以下功能：
+
+```
+    /**
+     * 扫描周围蓝牙秤列表
+     * @parm 蓝牙扫描返回监听-PPSearchDeviceInfoInterface
+     * @parm 蓝牙相关状态监听-PPBleStateInterface
+     */
+    public void startSearchDeviceList(int scanTimes, PPSearchDeviceInfoInterface searchDeviceInfoInterface, PPBleStateInterface bleStateInterface) {
     }
+
+    /**
+     * 停止搜索
+     */
+    public void stopSearch() {
+    }
+
+
+    /**
+     * 是否正在扫描
+     * @return
+     */
+    public boolean isSearching() {}
     
-    //搜索到所支持的设备
-    func centralManagerDidFoundSurroundDevice(_ device: AKBluetoothAdvDeviceModel!, andPeripheral peripheral: CBPeripheral!) {
-
-    }
-}
 ```
 
-#### 1.2.3 AKBluetoothUpdateStateDelegate和AKBluetoothSurroundDeviceDelegate代理方法说明
-
-```
-@protocol AKBluetoothUpdateStateDelegate <NSObject>
-
-// 蓝牙状态
-- (void)centralManagerDidUpdateState:(AKBluetoothState)state;
-
-@end
-
-
-@protocol AKBluetoothSurroundDeviceDelegate <NSObject>
-
-// 搜索到所支持的设备
-- (void)centralManagerDidFoundSurroundDevice:(AKBluetoothAdvDeviceModel *)device andPeripheral:(CBPeripheral *)peripheral;
-
-@end
-```
-
-#### 1.2.4 蓝牙状态说明-AKBluetoothState
+#### 1.1.1 蓝牙状态PPBleWorkState
 
 | 分类枚举 | 说明 | 备注 |  
 |------|--------|--------|  
-| AKBluetoothStateUnknown | 未知状态 |
-| AKBluetoothStateResetting | 复位 |   
-| AKBluetoothStateUnsupported | 不支持|
-| AKBluetoothStateUnauthorized | 权限未授权| 
-| AKBluetoothStatePoweredOff| 蓝牙已关闭 |
-| AKBluetoothStatePoweredOn | 蓝牙已打开 |
+| PPBleWorkStateSearching | 扫描中 |
+| PPBleWorkSearchTimeOut| 扫描超时 | 如有需要可重启扫描 |  
+| PPBleWorkSearchFail | 扫描失败| 如有需要可重启扫描 |  
+| PPBleStateSearchCanceled| 停止扫描|主动调用停止扫描 |  
+| PPBleWorkStateConnecting| 设备连接中 | |  
+| PPBleWorkStateConnected | 设备已连接 | 连接上后，建议在PPBleWorkStateWritable中下发数据 |  
+| PPBleWorkStateConnectFailed| 连接失败 | |  
+| PPBleWorkStateDisconnected| 设备已断开 | |  
+| PPBleWorkStateWritable | 可写 | 连接后如有需要给设备发送信息，可在此依次发送 |  
 
-#### 1.2.5 连接指定蓝牙设备
 
-```
-//连接蓝牙设备，并设置对应代理
-self.scaleManager.connect(peripheral, withDevice: device)
-self.scaleManager.connectDelegate = self
-```
 
-#### 1.2.6 设备连接状态代理实现-AKBluetoothConnectDelegate
+#### 1.1.4 停止扫描
 
-```
-extension DeviceAnkerViewController:AKBluetoothConnectDelegate{
-    
-    // 设备已连接
-    func centralManagerDidConnect() {
+``` 
+ppScale.stopSearch();   
+``` 
+#### 1.1.5 重启扫描
 
-    }
-    
-    // 设备断开连接
-    func centralManagerDidDisconnect() {
+重启扫描建议延迟1-2s再启动，防止触发Android系统的频繁扫描
 
-    }
-    
-    // 设备连接失败
-    func centralManagerDidFail(toConnect error: Error!) {
-        
-    }
-
-}
-```
-
-#### 1.2.7搜索周边支持的设备
-
-```
-// 搜索周边支持的设备，调用前请判断蓝牙是否为“打开”状态
-self.scaleManager.searchSurroundDevice()
-```
-
-#### 1.2.8 停止扫描
-
-```
-self.scaleManager.stopSearch()
-```
-
-#### 1.2.9 断开指定设备的连接
-
-```
-self.scaleManager.disconnect(peripheral)
-```
+```    
+ public void delayScan() {  
+    new Handler(getMainLooper()).postDelayed(new Runnable() {
+     @Override 
+     public void run() { 
+        if (isOnResume) { 
+            startScanDeviceList();     
+                }   
+            }   
+     }, 1000);    
+ }  
+ ```   
 
 # Ⅴ. 功能说明
 
-### 2.1 功能说明 -DeviceAnkerViewController
+### 2.1 功能说明 -PPBlutoothPeripheralIceController
+
+```  
+    //连接设备
+    override fun startConnect(deviceModel: PPDeviceModel, bleStateInterface: PPBleStateInterface?) {}
+
+    /**
+     * 注册数据变化监听
+     */
+    fun registDataChangeListener(dataChangeListener: PPDataChangeListener) {}
+
+    /**
+     * 读取设备信息
+     */
+    fun readDeviceInfo(deviceInfoInterface: PPDeviceInfoInterface?) {}
+
+    /**
+     * 普通体脂秤同步时间
+     */
+    fun syncTime(sendResultCallBack: PPBleSendResultCallBack?) {}
+
+    /**
+     * 切换单位
+     */
+    fun syncUnit(userUnit: PPUnitType?, sendResultCallBack: PPBleSendResultCallBack?) {}
+
+    /**
+     * 获取历史数据
+     */
+    fun getHistory(historyDataInterface: PPHistoryDataInterface) {}
 
 
-#### 2.1.1 支持的功能
+    /**
+     * 清除历史数据
+     */
+    fun deleteHistoryData(bleSendListener: PPBleSendResultCallBack?) {}
 
-```
-// AKBluetoothPeripheralAnker.h
+    /**
+     * 测值模式
+     *
+     * @param state 1打开孕妇模式 0关闭孕妇模式
+     */
+    fun controlImpendance(state: Int, modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+    
+    /**
+     * @param  state   心率 0打开 1关闭
+     */
+    fun controlHeartRate(state: Int, modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
+    
+    /**
+     * 切换婴儿模式
+     *
+     * @param mode 00使能抱婴模式 01退出抱婴模式
+     */
+    fun exitBaby(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
 
-@interface AKBluetoothPeripheralAnker : NSObject
+    /**
+     * 切换婴儿模式
+     *
+     * @param mode 00使能抱婴模式 01退出抱婴模式
+     */
+    fun startBaby(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
 
-@property (nonatomic, weak) id<AKBluetoothServiceDelegate> serviceDelegate;
+    /**
+     * 切换婴儿模式
+     *
+     * @param mode 00使能抱婴模式 01退出抱婴模式
+     */
+    fun startPet(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
 
-@property (nonatomic, weak) id<AKBluetoothScaleDataDelegate> scaleDataDelegate;
+    /**
+     * 切换婴儿模式
+     *
+     * @param mode 00使能抱婴模式 01退出抱婴模式
+     */
+    fun exitPet(modeChangeInterface: PPTorreDeviceModeChangeInterface?) {}
 
-@property (nonatomic, strong) CBPeripheral *peripheral;
+    /**
+     * 启动配网
+     */
+    fun configWifiStart(configWifiInfoInterface: PPConfigWifiInfoInterface) {}
 
-@property (nonatomic, strong) AKBluetoothAdvDeviceModel *deviceAdv;
+    /**
+     * 下发配网code、uid、服务器域名
+     *
+     * @param code
+     * @param uid
+     * @param url
+     * @param configWifiInfoInterface
+     */
+    fun configNewCodeUidUrl(code: String, uid: String, url: String, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
-@property (nonatomic, strong) AKBatteryInfoModel *batteryInfo;
+    /**
+     * 下发域名证书
+     */
+    fun configDomainCertificate(domainCertificate: String, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
+    /**
+     * 删除WiFi参数
+     *
+     * @param configWifiInfoInterface
+     */
+    fun configDeleteWifi(configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
-- (instancetype)initWithPeripheral:(CBPeripheral *)peripheral  andDevice:(AKBluetoothAdvDeviceModel *)device;
+    /**
+     * 查询WiFi参数
+     */
+    fun getWifiInfo(configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
+    /**
+     * 更新WiFi参数(配网)-路由器名称
+     *
+     * @param ssid
+     * @param configWifiInfoInterface
+     */
+    fun configUpdateWifiSSID(ssid: String?, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
-- (void)discoverFFF0Service;
+    /**
+     * 更新WiFi参数(配网)-路由器密码
+     *
+     * @param pwd
+     * @param configWifiInfoInterface
+     */
+    fun configUpdateWifiPassword(pwd: String?, configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
+    /**
+     * 更新WiFi参数(配网)-结束
+     *
+     * @param configWifiInfoInterface
+     */
+    fun startConnectRouter(configWifiInfoInterface: PPConfigWifiInfoInterface?) {}
 
-/// 开始鉴权
-/// - Parameter handler:  0 成功 1 失败
-- (void)startAuth:(void(^)(NSInteger status))handler;
+    /**
+     * 获取wifi列表
+     */
+    fun getWifiList(configWifiInfoInterface: PPConfigWifiInfoInterface) {}
 
+    /**
+     * 退出配网
+     */
+    fun exitConfigWifi() {}
+    
+    //获取设备绑定状态
+    fun getDeviceBindState() {}
 
-/// 获取电池电量
-- (void)fetchDeviceBatteryInfo;
+    //获取设备Token 状态
+    fun getDeviceTokenState() {}
 
-/// 发现180A设备信息服务
-- (void)discoverDeviceInfoService:(void(^)(AKBluetooth180ADeviceModel *deviceModel))deviceInfoResponseHandler;
+    //准备更新Token
+    fun prepareUpdateToken() {}
+    
+    //设备模式查询
+    fun getCurrDeviceModel() {}
+    
+    //获取当前wifi Rssi
+    fun getCurrWifiRSSI() {}
 
-/// 设置单位
-/// status 0 为成功 1为失败
-- (void)changeUnit:(PPDeviceUnit)unit withHandler:(void(^)(NSInteger status))handler;
+    /**
+     * 恢复出厂
+     */
+    fun resetDevice(ppDeviceSetInfoInterface: PPDeviceSetInfoInterface?) {}
 
-/// 进入孕妇模式（安全模式）
-/// status 0 为成功 1为失败
-- (void)enterPregnantWomanModeWithHandler:(void(^)(NSInteger status))handler;
+    /**
+     * 读取设备电量
+     */
+    fun readDeviceBattery(ppDeviceInfoInterface: PPDeviceInfoInterface?) {     }
 
-/// 退出孕妇模式（安全模式）
-/// status 0 为成功 1为失败
-- (void)exitPregnantWomanModeWithHandler:(void(^)(NSInteger status))handler;
+    //配网心跳包
+    fun startKeepAlive() {
+        Logger.d("$tag startKeepAlive")
+    }
 
-/// 进入婴儿模式
-/// status 0 为成功 1为失败
-- (void)enterBabyModeWithHandler:(void(^)(NSInteger status))handler;
-
-/// 退出婴儿模式
-/// status 0 为成功 1为失败
-- (void)exitBabyModeWithHandler:(void(^)(NSInteger status))handler;
-
-/// 进入宠物模式
-/// status 0 为成功 1为失败
-- (void)enterPetModeWithHandler:(void(^)(NSInteger status))handler;
-
-/// 退出宠物模式
-/// status 0 为成功  1为失败
-- (void)exitPetModeWithHandler:(void(^)(NSInteger status))handler;
-
-/// 查询孕妇模式（安全模式）开关
-/// status 0 为开  1为关  2为异常
-- (void)fetchPregnantWomanModeStatusWithHandler:(void(^)(NSInteger status))handler;
-
-/// 切换模式（标定/内码）
-/// status 0 为成功 1为失败
-- (void)switchMode:(AnkerSwitchMode)mode withHandler:(void(^)(NSInteger status))handler;
-
-/// 打开心率测量
-/// - Parameter handler: 0设置成功 1设置失败
-- (void)openHeartRateSwitch:(void(^)(NSInteger status))handler;
-
-
-/// 关闭心率测量
-/// - Parameter handler:  0设置成功 1设置失败
-- (void)closeHeartRateSwitch:(void(^)(NSInteger status))handler;
-
-/// 恢复出厂设置
-/// status 0 为成功 1为失败
-- (void)restoreFactoryWithHandler:(void(^)(NSInteger status))handler;
-
-/// 获取心率开关状态
-/// heartRateStatus 0开  1关 2异常
-- (void)fetchHeartRateStatus:(void(^)(NSInteger heartRateStatus))handler;
-
-
-/// 同步设备时间
-///  status 0 为成功 1为失败
-- (void)syncTime:(void(^)(NSInteger status))handler;
-
-
-/// 查询设备时间
-///  例：2017-08-17 21:04:48
-- (void)fetchDeviceTime:(void(^)(NSString* deviceTime))handler;
-
-/// 下发用户数据
-/// status 0成功  1失败
-- (void)syncUserInfo:(AKUserModel *)userModel withHandler:(void(^)(NSInteger status))handler;
-
-
-/// 获取历史数据
-/// - Parameter callBack:
-- (void)fetchHistoryDataWithHandler:(void(^)(NSArray <AKBluetoothScaleBaseModel *>* history, NSError* error))handler;
-
-
-/// 删除历史数据
-- (void)deleteDeviceHistoryDataWithHandler:(void(^)(NSInteger status))handler;
-
-/// 搜索附近WiFi列表
-- (void)findSurroundWIFI:(void(^)(NSArray <AKWifiInfoModel *>*wifis, int status))handler;
-
-/// 取消配网
-/// status 0成功  1失败
-- (void)cancelWifiConfigWithHandler:(void(^)(NSInteger status))handler;
-
-/// 开始配网
-/// status 0开始配网  1配网失败
-- (void)startWifiWithHandler:(void(^)(NSInteger status))handler;
-
-/// 下发配网code、uid、服务器域名
-/// status 0成功  1失败
-- (void)sendWifiCode:(NSString *)code uid:(NSString *)uid domain:(NSString *)domain handler:(void(^)(NSInteger status))handler;
-
-/// 下发域名证书
-/// status 0成功  1失败
-- (void)sendCertificate:(NSString *)certificate withHandler:(void(^)(NSInteger status))handler;
-
-/// 下发域名证书完成
-/// status 0成功  1失败
-- (void)sendCertificateCompleteWithHandler:(void(^)(NSInteger status))handler;
-
-/// 更新WiFi参数(配网)-路由器名称
-/// status 0成功  1失败
-- (void)updateWifiSSID:(NSString *)ssid withHandler:(void(^)(NSInteger status))handler;
-
-/// 更新WiFi参数(配网)-路由器密码
-/// status 0成功  1失败
-- (void)updateWifiPassword:(NSString *)password withHandler:(void(^)(NSInteger status))handler;
-
-/// 更新WiFi参数(配网)-结束
-/// status 0成功  1失败
-/// step : 当前步骤：WIFI准备配网 - 0x11；下发device id - 0x12；下发product code - 0x13；配网开始指令 - 0x14；接收域名、uid - 0x15；接收证书 - 0x16；证书接收完成 - 0x17；WIFI list-  0x18；接收SSID - 0x19；接收password - 0x1A；配网完成指令 - 0x1B；删除WIFI参数 - 0x1C；连接路由器-0x25
-/// errorType: 超时 - 0x01；接收到wifi错误码 - 0x02；接收到云端返回res_code错误码 - 0x0d
-- (void)updateWifiInfoCompleteWithHandler:(void(^)(NSInteger status, Byte step, Byte errorType))handler;
-
-@end
-```
+    /**
+     * 停止心跳
+     */
+    fun stopKeepAlive() {
+        Logger.d("$tag stopKeepAlive")
+      
+    }
+ ```   
 
 ## Ⅵ .实体类对象及具体参数说明
 
-### 1.1 AKBodyFatModel 体脂计算对象参数说明
+### 1.1 PPBodyFatModel 体脂计算对象参数说明
 
 四电极对应的24项数据
 
@@ -503,13 +489,20 @@ self.scaleManager.disconnect(peripheral)
 |PPBodyTypeFatMuscle|偏胖肌肉型|7|  
 |PPBodyTypeMuscleFat|肌肉型偏胖|8|
 
-### 1.3 设备对象-AKBluetoothAdvDeviceModel
+### 1.3 设备对象-PPDeviceModel
 
 | 属性名 | 类型 | 描述 |备注|  
 | ------ | ---- | ---- | ---- |  
 | deviceMac | String | 设备mac|设备唯一标识|  
 | deviceName | String | 设备蓝牙名称 |设备名称标识|  
+| devicePower | Int | 电量 |-1标识不支持 >0为有效值|  
 | rssi | Int | 蓝牙信号强度 |
+| firmwareVersion | String? | 固件版本号 |要在连接后主动调用readDeviceInfo |  
+| hardwareVersion | String? | 硬件版本号 |要在连接后主动调用readDeviceInfo |  
+| manufacturerName | String? | 制造商 |要在连接后主动调用readDeviceInfo |  
+| softwareVersion | String? | 软件版本号 |要在连接后主动调用readDeviceInfo |  
+| serialNumber | String? | 序列号 |要在连接后主动调用readDeviceInfo |  
+| modelNumber | String? | 时区编号 |要在连接后主动调用readDeviceInfo |  
 
 
 ### 1.4 设备单位-PPDeviceUnit
