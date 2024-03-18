@@ -234,7 +234,7 @@
                         android:layout_width="@dimen/size_dp58"
                         android:layout_height="@dimen/size_dp30"
                         android:background="@drawable/tone_switch_selector"
-                        android:checked="true"
+                        android:checked="false"
                         android:textOff=""
                         android:textOn="" />
                 </LinearLayout>
@@ -256,7 +256,7 @@
                         android:layout_width="@dimen/size_dp58"
                         android:layout_height="@dimen/size_dp30"
                         android:background="@drawable/tone_switch_selector"
-                        android:checked="true"
+                        android:checked="false"
                         android:textOff=""
                         android:textOn="" />
                 </LinearLayout>
@@ -278,7 +278,7 @@
                         android:layout_width="@dimen/size_dp58"
                         android:layout_height="@dimen/size_dp30"
                         android:background="@drawable/tone_switch_selector"
-                        android:checked="true"
+                        android:checked="false"
                         android:textOff=""
                         android:textOn="" />
 

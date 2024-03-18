@@ -105,7 +105,7 @@ class PeripheralIceActivity : AppCompatActivity() {
             })
         }
         findViewById<Button>(R.id.syncUnit).setOnClickListener {
-            addPrint("syncUnit")
+            addPrint("syncUnit:${DataUtil.util().unit}")
             controller?.syncUnit(DataUtil.util().unit, object : PPBleSendResultCallBack {
                 override fun onResult(sendState: PPScaleSendState?) {
                     if (sendState == PPScaleSendState.PP_SEND_SUCCESS) {
@@ -198,6 +198,7 @@ class PeripheralIceActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.startKeepAlive).setOnClickListener {
             addPrint("startKeepAlive")
+            controller?.stopKeepAlive()
             controller?.startKeepAlive()
         }
         findViewById<ToggleButton>(R.id.heartRateModeToggleBtn).setOnCheckedChangeListener { buttonView, isChecked ->
@@ -225,9 +226,9 @@ class PeripheralIceActivity : AppCompatActivity() {
              *
              */
             if (isChecked) {
-                controller?.startBaby()
+                controller?.startBaby(modeChangeInterface)
             } else {
-                controller?.exitBaby()
+                controller?.exitBaby(modeChangeInterface)
             }
         }
         findViewById<ToggleButton>(R.id.petModeToggleBtn).setOnCheckedChangeListener { buttonView, isChecked ->
@@ -236,9 +237,9 @@ class PeripheralIceActivity : AppCompatActivity() {
              * 宠物模式
              */
             if (isChecked) {
-                controller?.startPet()
+                controller?.startPet(modeChangeInterface)
             } else {
-                controller?.exitPet()
+                controller?.exitPet(modeChangeInterface)
             }
         }
     }
@@ -263,41 +264,46 @@ class PeripheralIceActivity : AppCompatActivity() {
          * @param state 0打开 1关闭
          */
         override fun readHeartRateStateCallBack(type: Int, state: Int) {
-            if (type == 0) {//设置开关
+            if (type == 1) {//设置开关
                 if (state == 0) {
-                    addPrint("heart rate mode success")
+                    addPrint("heart rate mode open success")
                 } else {
-                    addPrint("heart rate mode fail")
+                    addPrint("heart rate mode close success")
                 }
             } else {//获取开关
                 if (state == 0) {//0打开 1关闭
-                    addPrint("heart rate mode is on")
+                    addPrint("heart rate state is on")
                 } else {
-                    addPrint("heart rate mode is off")
+                    addPrint("heart rate state is off")
                 }
             }
         }
 
-        override fun switchBabyModeCallBack(state: Int) {}
+        override fun switchBabyModeCallBack(state: Int) {
+            if (state == 0) {
+                addPrint("switch Baby mode open success")
+            } else {
+                addPrint("switch Baby mode close success")
+            }
+        }
+
+        override fun switchPetModeCallBack(state: Int) {
+            if (state == 0) {
+                addPrint("switch pet mode open success")
+            } else {
+                addPrint("switch pet mode close success")
+            }
+        }
 
         /**
-         * @param type  0x01：设置开关 0x02：获取开关
-         * @param state 0x00：设置成功 0x01：设置失败
-         * 0x00：阻抗测量打开 0x01：阻抗测量关闭
+         * @param
+         *  state 0关闭孕妇模式 1打开孕妇模式
          */
-        override fun controlImpendanceCallBack(type: Int, state: Int) {
-            if (type == 0) {//设置开关
-                if (state == 0) {
-                    addPrint("maternity mode success")
-                } else {
-                    addPrint("maternity mode fail")
-                }
-            } else {//获取开关
-                if (state == 0) {
-                    addPrint("maternity mode is on")
-                } else {
-                    addPrint("maternity mode is off")
-                }
+        override fun controlImpendanceCallBack(state: Int) {
+            if (state == 0) {
+                addPrint("Turn off pregnant woman mode Success")
+            } else {
+                addPrint("Open Pregnant Women Mode Success ")
             }
         }
 
